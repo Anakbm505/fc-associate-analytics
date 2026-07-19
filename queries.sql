@@ -67,3 +67,20 @@ JOIN pick_rates pr ON a.associate_id = pr.associate_id
 WHERE a.status = 'Active'
 GROUP BY a.associate_id, a.full_name, d.dept_name
 ORDER BY avg_rate DESC;
+
+
+  -- Query 5: Departments missing pick rate targets
+  -- Business question: Which departments are underperforming on average?
+  -- Concepts: HAVING, AVG, GROUP BY, JOIN
+
+SELECT 
+    d.dept_name,
+    ROUND(AVG(CAST(pr.units_picked as FLOAT) / pr.target_units), 2) AS avg_completion_rate, 
+    COUNT(DISTINCT a.associate_id) AS associate_count
+FROM associates a 
+JOIN departments d ON a.department_id = d.department_id
+JOIN pick_rates pr ON a.associate_id = pr.associate_id 
+WHERE a.status = 'Active'
+GROUP BY d.dept_name
+HAVING AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units) < 1.15
+ORDER BY avg_completion_rate ASC;
