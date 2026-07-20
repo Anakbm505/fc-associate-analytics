@@ -135,3 +135,21 @@ ORDER BY avg_rate DESC;
  ORDER BY avg_rate DESC;
 
 
+  -- Query 8: Associate ranking and trend within department
+  -- Business question: How does each associate rank in their dept and are they trending up or down?
+  -- Concepts: Window functions, RANK, LAG, NTILE, OVER, PARTITION BY
+
+
+  SELECT
+      a.associate_id,
+      a.full_name,
+      d.dept_name,
+      ROUND(AVG(pr.rate_per_hour), 2) AS avg_rate,
+      RANK() OVER (PARTITION BY d.dept_name ORDER BY AVG(pr.rate_per_hour) DESC) AS dept_rank,
+      NTILE(4) OVER (ORDER BY AVG(pr.rate_per_hour) DESC) AS quartile
+  FROM associates a
+  JOIN departments d ON a.department_id = d.department_id
+  JOIN pick_rates pr ON a.associate_id = pr.associate_id
+  WHERE a.status = 'Active'
+  GROUP BY a.associate_id, a.full_name, d.dept_name
+  ORDER BY d.dept_name, dept_rank;
