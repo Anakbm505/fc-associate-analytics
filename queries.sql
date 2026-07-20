@@ -106,4 +106,32 @@ ORDER BY avg_completion_rate ASC;
 ORDER BY avg_rate DESC;
 
 
+ -- Query 7: Full associate performance summary using CTE
+  -- Business question: What does each associate's complete performance look like?
+  -- Concepts: CTE, WITH clause, AVG, CASE, JOIN
+
+  WITH performance_summary AS (
+    SELECT 
+        a.associate_id,
+        a.full_name,
+        d.dept_name,
+        ROUND(AVG(pr.rate_per_hour), 2) AS avg_rate,
+        ROUND(AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units), 2) AS avg_completion,
+        CASE 
+            WHEN AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units) >= 1.15 THEN 'Elite'
+            WHEN AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units) >= .95  THEN 'On Track'
+            WHEN AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units) >= .80  THEN 'At Risk'
+            ELSE 'Below target'
+        END AS performance_tier
+    FROM associates a 
+    JOIN departments d ON a.department_id = d.department_id
+    JOIN pick_rates pr ON a.associate_id = pr.associate_id
+    WHERE a.status = 'Active'
+    GROUP BY a.associate_id, a.full_name, d.dept_name
+  )
+
+ SELECT *
+ FROM performance_summary
+ ORDER BY avg_rate DESC;
+
 
