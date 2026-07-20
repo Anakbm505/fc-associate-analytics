@@ -153,3 +153,46 @@ ORDER BY avg_rate DESC;
   WHERE a.status = 'Active'
   GROUP BY a.associate_id, a.full_name, d.dept_name
   ORDER BY d.dept_name, dept_rank;
+
+
+  -- Query 9: Full associate profile — capstone query
+  -- Business question: Complete view of every active associate's performance and safety record
+  -- Concepts: CTE, JOIN, LEFT JOIN, CASE, RANK, NTILE, COUNT, GROUP BY, window functions
+
+
+   WITH performance_base AS (
+      SELECT
+          a.associate_id,
+          a.full_name,
+          d.dept_name,
+          ROUND(AVG(pr.rate_per_hour), 2) AS avg_rate,
+          ROUND(AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units), 2) AS avg_completion,
+          COUNT(DISTINCT s.shift_id) AS total_shifts,
+          COUNT(DISTINCT si.incident_id) AS total_incidents,
+          CASE
+              WHEN AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units) >= 1.15 THEN 'Elite'
+              WHEN AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units) >= 0.95 THEN 'On Track'
+              WHEN AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units) >= 0.80 THEN 'At Risk'
+              ELSE 'Below Target'
+          END AS performance_tier
+      FROM associates a
+      JOIN departments d ON a.department_id = d.department_id
+      JOIN shifts s ON a.associate_id = s.associate_id
+      JOIN pick_rates pr ON a.associate_id = pr.associate_id
+      LEFT JOIN safety_incidents si ON a.associate_id = si.associate_id
+      WHERE a.status = 'Active'
+      GROUP BY a.associate_id, a.full_name, d.dept_name
+  )
+  SELECT
+      associate_id,
+      full_name,
+      dept_name,
+      avg_rate,
+      avg_completion,
+      performance_tier,
+      total_shifts,
+      total_incidents,
+      RANK() OVER (PARTITION BY dept_name ORDER BY avg_rate DESC) AS dept_rank,
+      NTILE(4) OVER (ORDER BY avg_rate DESC) AS quartile
+  FROM performance_base
+  ORDER BY dept_name, dept_rank;
