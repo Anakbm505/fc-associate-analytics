@@ -84,3 +84,26 @@ WHERE a.status = 'Active'
 GROUP BY d.dept_name
 HAVING AVG(CAST(pr.units_picked AS FLOAT) / pr.target_units) < 1.15
 ORDER BY avg_completion_rate ASC;
+
+  -- Query 6: Associates performing above facility-wide average
+  -- Business question: Who beats the overall facility average?
+  -- Concepts: Subquery, AVG, JOIN
+
+  SELECT 
+    a.associate_id,
+    a.full_name,
+    d.dept_name,
+    ROUND(AVG(pr.rate_per_hour), 2) AS avg_rate
+ FROM associates a
+ JOIN departments d  ON a.department_id = d.department_id
+ JOIN pick_rates pr ON a.associate_id = pr.associate_id
+ WHERE a.status = 'Active'
+ GROUP BY a.associate_id, a.full_name, d.dept_name
+ HAVING AVG(pr.rate_per_hour) > (
+    SELECT AVG(rate_per_hour)
+    FROM pick_rates
+ )
+ORDER BY avg_rate DESC;
+
+
+
